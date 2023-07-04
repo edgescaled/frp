@@ -1,0 +1,58 @@
+kind: secret
+name: username
+get:
+  path: drone-cred-secrets
+  name: vcr_username
+---
+kind: secret
+name: password
+get:
+  path: drone-cred-secrets
+  name: vcr_password
+---
+kind: pipeline
+name: "frp"
+type: kubernetes
+
+clone:
+  depth: 50
+
+trigger:
+  branch:
+  - main
+  - dev
+  event:
+  - push
+  - pull_request
+  - custom
+  - cron
+
+steps:
+- name: "publish - frps"
+  image: plugins/docker
+  settings:
+    password:
+      from_secret: password
+    username:
+      from_secret: username
+    dockerfile: dockerfiles/Dockerfile-for-frps
+    build_args:
+    - PACKAGE_NAME=server
+    registry: vcr.vsrv.pw
+    repo: vcr.vsrv.pw/edgescaled/frps
+    tags:
+    - "${DRONE_COMMIT_SHA:0:7}_ci_build_${DRONE_BUILD_NUMBER}"
+- name: "publish - frpc"
+  image: plugins/docker
+  settings:
+    password:
+      from_secret: password
+    username:
+      from_secret: username
+    dockerfile: dockerfiles/Dockerfile-for-frpc
+    build_args:
+    - PACKAGE_NAME=server
+    registry: vcr.vsrv.pw
+    repo: vcr.vsrv.pw/edgescaled/frpc
+    tags:
+    - "${DRONE_COMMIT_SHA:0:7}_ci_build_${DRONE_BUILD_NUMBER}"
